@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
+    <script src="/jquery.js"></script>
+    <script src="/popper.js"></script>
+    <script src="/bootstrap.js"></script>
+    <script src='/socket.io/socket.io.js'></script>
+    <link rel="stylesheet" href="/bootstrap.css">
+    <style>.text-light2{color:#ccc;}body{word-wrap:break-word;}</style>
+  </head>
+
+  <body class="bg-dark">
+    <br>
+    <div class="container-fluid">
+      <div class="row">
+
+        <div class="col-lg-6 col-md-12">
+          <div class="row">
+            <div class="col-6"><input id="name" class="form-control" placeholder="Никнейм (до 30 символов)" autocomplete="off"></div>
+            <div class="col-6"><input id="message" class="form-control" placeholder="Сообщение (до 100 символов)" autocomplete="off"></div>
+          </div>
+          
+          <br>
+          <button id="send" class="btn btn-primary" style="width:100%">Отправить</button>
+          <br>
+          <center>
+            <button id="more1" class="btn btn-sm btn-success" style="width:49%">Больше сообщений</button>
+            <button id="more2" class="btn btn-sm btn-danger" style="width:49%">Меньше сообщений</button>
+          </center>
+          <br><br>
+        </div>
+
+        <div class="col-lg-6 col-md-12" id="messages"></div>
+      
+      </div>
+    </div>
+
+    <script>
+    var socket = io();
+    socket.on('message', addMessage);
+
+    var MAX_MESSAGES = 10;
+
+    window.messages = [];
+    console = !!console ? console : {};
+    console.info = !!console.info ? console.info : function() {};
+
+    function addMessage(message, dontPush) {
+      message = !!message.name ? message : message.msg;
+      console.info('[Message] ' + message.name + ': ' + message.message);
+
+      if (!dontPush) window.messages.push(message);
+      document.querySelector('#message').value = '';
+
+      if (window.messages.length == MAX_MESSAGES) {
+        document.querySelector('#messages').innerHTML = '';
+        window.messages.shift();
+        window.messages.forEach(function(m) { addMessage(m, 1); });
+      }
+
+      else { $('#messages').append(`<p>
+        <b class="text-light">${message.name}:&nbsp;</b>
+        <span class="text-light2">${message.message}</span>
+      </p>`); }
+    }
+
+    function getMessages() {
+      console.info('Fetching messages...');
+
+      $.get('http://localhost:8080/messages', function(data) {
+        if (data.length > MAX_MESSAGES) {
+          while (data.length != MAX_MESSAGES) data.shift();
+          data.forEach(function(m) { addMessage(m); });
+        }
+      });
+    }
+
+    function sendMessage(message) {
+      console.info('[Sending] ' + message.name + ': ' + message.message);
+      if (!!window.socket) window.socket.emit('message', message);
+    }
+
+    getMessages();
+
+    socket.on('connection', function(socket) {
+      console.info('Connected to server.');
+      window.socket = socket;
+    });
+
+    $(function() {
+      $("#send").click(function() {
+        sendMessage({
+          name: $("#name").val(), 
+          message:$("#message").val()
+        });
+      });
+
+      $("#more1").click(function() {
+        if (MAX_MESSAGES == 20) return;
+        MAX_MESSAGES ++;
+      });
+
+      $("#more2").click(function() {
+        if (MAX_MESSAGES == 5) return;
+        MAX_MESSAGES --;
+        document.querySelector('#messages').innerHTML = '';
+        window.messages.shift();
+        window.messages.forEach(function(m) { addMessage(m, 1); });
+      });
+    });
+
+    </script>
+  </body>
+</html>
