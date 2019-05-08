@@ -1,6 +1,7 @@
 # Requirements
 
 **Node.js**: 10.x and up, 12.x are recommend
+
 **MongoDB server**: 3.x and up
 
 # Installation
